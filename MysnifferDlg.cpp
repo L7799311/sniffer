@@ -500,11 +500,10 @@ void CMysnifferDlg::an_ethernet()
 	}
 	dlg->m_pack.SetItemText(number - 1, 5, m_str2);
 	/* 获得源以太网地址 */
-	//printf("目的以太网地址: \n");
 	macaddr = ethernet->dmac;
 	m_str2.Format("%.2x", macaddr[0]);
 	dlg->str = m_str2;
-	for (int cc = 1; cc < 6; cc++)
+	for(int cc = 1;cc < 6; cc ++)
 	{
 		m_str2.Format(":%.2x", macaddr[cc]);
 		dlg->str += m_str2;
@@ -512,32 +511,7 @@ void CMysnifferDlg::an_ethernet()
 	dlg->m_pack.SetItemText(number - 1, 6, str);
 
 	/* 获得目的以太网地址 */
-	CString tru;
-	switch (ethernet_type)
-	{
-		/*case 0x0608:
-			dlg->m_pack.SetItemText(number - 1, 1, "IPV4");
-			break;*/
-	case 0x86dd:
-		dlg->m_pack.SetItemText(number - 1, 1, "IPV6");
-		tru = "IPV6";
-		this->m_pack.SetItemText(number - 1, 1, tru);
-		//this->an_ip();
-		break;
-	case 0x0806:
-		this->m_pack.SetItemText(number - 1, 2, "ARP");
-		//this->an_arp();
-		break;
-		//上层协议为ARP协议，调用分析ARP协议的函数，注意参数的传递
-	case 0x0800:
-		//this->an_ip();
-		break;
-		// 上层协议为IP协议，调用分析IP协议的函数，注意参数的传递 
-	default:
-		break;
-	}
-
-	int counter = 0, counter2 = 0;
+	int counter=0, counter2=0;
 	dlg->str.Format("%08x ", counter + 16);
 	for (counter = 1; (counter < (header->caplen + 1)); counter++)
 	{
@@ -548,14 +522,14 @@ void CMysnifferDlg::an_ethernet()
 			dlg->str += " ";
 			for (counter2 = 0; counter2 < LINE_LEN; counter2++)
 			{
-				if ((pkt_data[counter + counter2 - LINE_LEN - 1] >= 32) && (pkt_data[counter + counter2 - LINE_LEN - 1] <= 126))
+				if ((pkt_data[counter + counter2 - LINE_LEN - 1] >= 32) && (pkt_data[counter + counter2 - LINE_LEN - 1] <= 126)) 
 				{
-
+					
 					dlg->str += pkt_data[counter + counter2 - LINE_LEN - 1];
 				}
 				else dlg->str += ".";
 			}
-			dlg->str += "\r\n";
+			dlg->str += "\r\n"; 
 			dlg->m_str2.Format("%08x ", counter + 16);
 			dlg->str += dlg->m_str2;
 		}
@@ -563,19 +537,20 @@ void CMysnifferDlg::an_ethernet()
 	dlg->str += "\r\n--------- 以太网 ---------\r\n";
 	CString temp;
 	temp.Format("%02x:%02x:%02x:%02x:%02X:%02X", *ethernet->smac, *(ethernet->smac + 1), *(ethernet->smac + 2), *(ethernet->smac + 3), *(ethernet->smac + 4), *(ethernet->smac + 5));
-	dlg->str += "源端口：" + temp + "\r\n";
+	dlg->str += "源端口：" + temp+"\r\n";
 	temp.Format("%02x:%02x:%02x:%02x:%02X:%02X", *ethernet->dmac, *(ethernet->dmac + 1), *(ethernet->dmac + 2), *(ethernet->dmac + 3), *(ethernet->dmac + 4), *(ethernet->dmac + 5));
-	dlg->str += "目的端口：" + temp + "\r\n";
+	dlg->str += "目的端口：" + temp+"\r\n";
 	dlg->str += "Type: ";
 	switch (ethernet_type)
 	{
-	case 0xdd86:
-		dlg->str += "IPV6\r\n";
-
+	case 0x86dd:
+		dlg->str+="IPV6\r\n";
+		this->m_pack.SetItemText(number - 1, 1, "IPV6");
 		dlg->str += "\r\n-----------IPV6-----------\r\n";
 		break;
 	case 0x0806:
-		this->str += "ARP\r\n";
+		dlg->str += "ARP\r\n";
+		this->m_pack.SetItemText(number - 1, 2, "ARP");
 		//dlg->str += "\r-----------ARP------------\r\n";
 		dlg->str += this->_arp();
 		break;
@@ -590,8 +565,7 @@ void CMysnifferDlg::an_ethernet()
 	}
 
 	pack_str[number] = dlg->str;
-	//printf("**************************************************\n");
-	//ethernet_number++;
+
 
 }
 
