@@ -137,11 +137,16 @@ public:
 	void getAllDevs();
 	void startCap();
 
+	// 显示HTTP协议的详细信息
+	//void GetHTTPDetail(HTREEITEM & hItem, const u_char *pkt_data);
+	// 判断该协议是否为HTTP协议
+	bool IsHTTP(const u_char *pkt_data);
 	CString _arp();
 	CString _ip();
 	CString _tcp();
 	CString _udp();
 	CString _icmp();
+	CString _http();
 
 	void an_ethernet();
 	pcap_if_t *alldevs;

@@ -162,7 +162,7 @@ BOOL CMysnifferDlg::OnInitDialog()
 	m_comboBoxRule.AddString(_T("ip"));
 	m_comboBoxRule.AddString(_T("icmp"));
 	m_comboBoxRule.AddString(_T("arp"));
-	//m_comboBoxRule.AddString(_T("tls"));
+	//m_comboBoxRule.AddString(_T("http"));
 	m_comboBoxRule.SetCurSel(0);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -730,7 +730,129 @@ CString CMysnifferDlg::_ip()
 
 }
 
+// 显示HTTP协议的详细信息
+CString CMysnifferDlg::_http()
+{
+	CString r, temp;
+	ip_header *ip_hdr = (ip_header *)(pkt_data + 14);
+	u_short ip_hdrLen = ip_hdr->ver_ihl;
+	tcp_header * tcp_hdr = (tcp_header *)(pkt_data + 14 + ip_hdrLen);
+	u_short tcp_hdrLen = tcp_hdr->tcp_offset * 4;
 
+
+	u_char *http_pkt = (u_char *)(pkt_data + 14 + ip_hdrLen + tcp_hdrLen);
+	u_short http_pktLen = ntohs(ip_hdr->tlen) - (ip_hdrLen + tcp_hdrLen); //u_short httpLen2 = header->len - (14+ip_hdrLen+tcp_hdrLen);
+
+	//http_packet * http_pktHdr = new http_packet ;// HTTP packet's  struct
+	vector<CString> strVecRequestHttp; // 定义请求头容器
+	vector<CString> strVecRespondHttp; // 定义响应头容器
+	CString chrVecTmp = NULL; // 声明存入容器的临时字符
+	CString strVecTmp = NULL; // 声明存入容器的临时字符串
+
+	u_char * pchrHttpAllData = NULL; //定义HTTP协议包的起始位置，包括请求头或响应头都可
+	u_char * pchrHttpRequestPos = NULL; //定义HTTP协议包的请求头的起始位置
+	u_char * pchrHttpRespondPos = NULL; //定义HTTP协议包的响应头的起始位置
+	pchrHttpAllData = http_pkt; //赋值得到HTTP协议包的开始位置
+
+	CString strHttpALLData = NULL;//定义HTTP协议包的数据包,包括请求头或响应头都可
+	CString strHttpRequestData = NULL;//定义HTTP协议包的请求头的数据
+	CString strHttpRespondData = NULL;//定义HTTP协议包的响应头的数据
+
+	u_short httpAllPos = 0;
+	u_short httpAllLen = 0;
+	httpAllLen = http_pktLen;
+	r += "----------- HTTP协议 -----------\r\n";
+	if (IsHTTP(pkt_data)) // check is http
+	{
+
+		if (*pkt_data == 'H') // 如果第一个字符为H，即可能以HTTP开头的，则为响应头，否则应为请求头
+		{
+			for (int i = 0; i < httpAllLen; i++) // get http_Get data
+			{
+				//chrVecTmp.Format(TEXT("%c"), pchrHttpAllData[i]); // format
+				//strHttpRespondData += chrVecTmp;//记录完整的HTTP响应头的数据
+
+				chrVecTmp.Format(TEXT("%c"), pchrHttpAllData[i]); //记录每一行的内容，并保存在临时字符串中
+				strVecTmp += chrVecTmp;
+				if (i > 2 && pchrHttpAllData[i - 1] == 13 && pchrHttpAllData[i] == 10) //根据回车换行符判断，并把每行保存在vector数组中
+				{
+					strVecRespondHttp.push_back(strVecTmp);
+					chrVecTmp = "";
+					strVecTmp = "";
+				}
+			}
+			r += "响应头:\r\n";
+			for (u_short irespond = 0; irespond < strVecRespondHttp.size(); irespond++) {
+				temp.Format("%d", strVecRespondHttp[irespond]);
+				r += temp + "\r\n";
+			}
+
+		}
+		else
+		{
+			for (int i = 0; i < httpAllLen; i++) // get http_Get data
+			{
+				//chrVecTmp.Format(TEXT("%c"), pchrHttpAllData[i]); // format
+				//strHttpRequestData += chrVecTmp;//记录完整的HTTP请求头的数据
+
+				chrVecTmp.Format(TEXT("%c"), pchrHttpAllData[i]); //记录每一行的内容，并保存在临时字符串中
+				strVecTmp += chrVecTmp;
+				if (i > 2 && pchrHttpAllData[i - 1] == 13 && pchrHttpAllData[i] == 10) //根据回车换行符判断，并把每行保存在vector数组中
+				{
+					strVecRequestHttp.push_back(strVecTmp);
+					chrVecTmp = "";
+					strVecTmp = "";
+				}
+			}
+			r += "请求头:\r\n";
+			for (u_short irequest = 0; irequest < strVecRequestHttp.size(); irequest++) {
+				temp.Format("%d", strVecRequestHttp[irequest]);
+				r += temp + "\r\n";
+			}
+
+		}
+	}
+	return r;
+
+}
+// 判断该协议是否为HTTP协议
+bool CMysnifferDlg::IsHTTP(const u_char *pkt_data)
+{
+	ip_header *ip_hdr = (ip_header *)(pkt_data + 14);
+	u_short ip_hdrLen = ip_hdr->ver_ihl;
+	tcp_header * tcp_hdr = (tcp_header *)(pkt_data + 14 + ip_hdrLen);
+	u_short tcp_hdrLen = tcp_hdr->tcp_offset * 4;
+
+	u_char *http_pkt = (u_char *)(pkt_data + 14 + ip_hdrLen + tcp_hdrLen);
+	u_short http_pktLen = ntohs(ip_hdr->tlen) - (ip_hdrLen + tcp_hdrLen); //u_short httpLen2 = header->len - (14+ip_hdrLen+tcp_hdrLen);
+
+	CString chrTmp = NULL;
+	CString strTmp = NULL;
+	CString strHttp = NULL;
+
+	int httpPos = 0;
+
+	if (ip_hdr->protocol == 6)
+	{
+		for (int i = 0; i < http_pktLen; i++) // 仅提取第一行是否含有HTTP字符串
+		{
+			chrTmp.Format(TEXT("%c"), http_pkt[i]);
+			strTmp += chrTmp;
+			if (i > 2 && http_pkt[i - 1] == 13 && http_pkt[i] == 10)
+				break;
+		}
+		//AfxMessageBox(strTmp);
+		httpPos = strTmp.Find(TEXT("HTTP"), 0);
+
+		if (httpPos != -1 && httpPos != 65535) // 如果第一行含有字符串HTTP，则为HTTP协议
+		{
+			return true;
+		}
+			return false;
+
+	}
+	return false;
+}
 
 CString CMysnifferDlg::_tcp()
 {
@@ -805,7 +927,11 @@ CString CMysnifferDlg::_tcp()
 	r += "校验和:" + temp + "\r\n";
 	temp.Format("%d", urgent_pointer);
 	r += "紧急指针:" + temp + "\r\n";
-
+	if (IsHTTP(pkt_data)) {
+		r += "协议:HTTP\r\n";
+		r += this->_http();
+		this->m_pack.SetItemText(number - 1, 2, "HTTP");
+	}
 	return r;
 }
 
