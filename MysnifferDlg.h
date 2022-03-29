@@ -44,11 +44,11 @@ typedef struct IP_Header
 
 struct icmp_header
 {
-	u_int8_t icmp_type;/* ICMP类型 */
-	u_int8_t icmp_code;/* ICMP代码 */
-	u_int16_t icmp_checksum;/* 校验和 */
-	u_int16_t icmp_id;/* 标识符 */
-	u_int16_t icmp_sequence;/* 序列码 */
+	u_char icmp_type;/* ICMP类型 */
+	u_char icmp_code;/* ICMP代码 */
+	u_char icmp_checksum;/* 校验和 */
+	u_char icmp_id;/* 标识符 */
+	u_char icmp_sequence;/* 序列码 */
 };
 
 struct ARP_header
@@ -127,10 +127,6 @@ public:
 	afx_msg void OnClickedButtonGetDevice();
 	afx_msg void OnClickListPack(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnClickedButtonStart();
-
-	afx_msg
-		void getoffset(FILE * fp);
-	int getpkg(FILE * fp, int id, pcap_pkthdr * header, const u_char * data);
 	afx_msg void OnStnClickedStaticSip();
 	//afx_msg void OnClickedButtonSend();
 
@@ -151,7 +147,7 @@ public:
 	void an_ethernet();
 	pcap_if_t *alldevs;
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int iplen;
+
 
 
 	pcap_t *adhandle;

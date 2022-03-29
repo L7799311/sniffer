@@ -374,9 +374,7 @@ static UINT WINAPI ThreadFunc()
 		dlg->str.Format("%d", header->len);//打印包的长度
 		dlg->m_pack.SetItemText(number - 1, 8, dlg->str);
 		dlg->an_ethernet();
-		if(number == 1)
-			dlg->file = fopen("data.pcap", "rb+");
-		dlg->getoffset(dlg->file);
+		
 	}
 	pcap_dump_close(dlg->dumpfp);
 	return 0;
@@ -414,7 +412,24 @@ void CMysnifferDlg::startCap()
 	//GetDlgItemText(IDC_EDIT_SELECT_DEVICE,str);
 
 	inum = atoi((char *)(LPSTR)(LPCTSTR)str);
+	if (inum != pos && Pos != NULL && str != "") {
+		message = "您选择的设备和输入的设备不相同，请重新输入";
+		MessageBox(message, "INFO");
+		this->m_device.DeleteAllItems();
+		return;
+	}
+	if (str == "") {
+		inum = pos;
+		str.Format("%d", pos);
+	}
 
+	if (inum < 1 || inum > i)
+	{
+		message = "设备序号超出范围.";
+		MessageBox(message, "ERROR");
+		pcap_freealldevs(alldevs);
+		return;
+	}
 	for (d = alldevs, i = 0; i< inum - 1; d = d->next, i++);
 
 	if ((adhandle = pcap_open(d->name,          // 设备名
@@ -490,7 +505,7 @@ void CMysnifferDlg::an_ethernet()
 	ethernet = (ether_header *)this->pkt_data;
 	static int ethernet_number = 1;
 	ethernet_type = ntohs(ethernet->ether_type);
-	macaddr = ethernet->smac;
+	macaddr = ethernet->dmac;
 	str.Format("%.2x", macaddr[0]);
 	dlg->m_str2 = str;
 	for (int cc = 1; cc < 6; cc++)
@@ -500,7 +515,7 @@ void CMysnifferDlg::an_ethernet()
 	}
 	dlg->m_pack.SetItemText(number - 1, 5, m_str2);
 	/* 获得源以太网地址 */
-	macaddr = ethernet->dmac;
+	macaddr = ethernet->smac;
 	m_str2.Format("%.2x", macaddr[0]);
 	dlg->str = m_str2;
 	for(int cc = 1;cc < 6; cc ++)
@@ -536,9 +551,9 @@ void CMysnifferDlg::an_ethernet()
 	}
 	dlg->str += "\r\n--------- 以太网 ---------\r\n";
 	CString temp;
-	temp.Format("%02x:%02x:%02x:%02x:%02X:%02X", *ethernet->smac, *(ethernet->smac + 1), *(ethernet->smac + 2), *(ethernet->smac + 3), *(ethernet->smac + 4), *(ethernet->smac + 5));
-	dlg->str += "源端口：" + temp+"\r\n";
 	temp.Format("%02x:%02x:%02x:%02x:%02X:%02X", *ethernet->dmac, *(ethernet->dmac + 1), *(ethernet->dmac + 2), *(ethernet->dmac + 3), *(ethernet->dmac + 4), *(ethernet->dmac + 5));
+	dlg->str += "源端口：" + temp+"\r\n";
+	temp.Format("%02x:%02x:%02x:%02x:%02X:%02X", *ethernet->smac, *(ethernet->smac + 1), *(ethernet->smac + 2), *(ethernet->smac + 3), *(ethernet->smac + 4), *(ethernet->smac + 5));
 	dlg->str += "目的端口：" + temp+"\r\n";
 	dlg->str += "Type: ";
 	switch (ethernet_type)
@@ -719,7 +734,7 @@ CString CMysnifferDlg::_ip()
 		r += this->_udp();
 		break;
 	case 1:
-		r += "ICMP";
+		r += "ICMP\r\n";
 		this->m_pack.SetItemText(number - 1, 2, "ICMP");
 		r += this->_icmp();
 		break;
@@ -867,7 +882,9 @@ CString CMysnifferDlg::_tcp()
 	u_int acknowledgement;/* 确认号 */
 	u_int16_t checksum;/* 校验和 */
 	CString r, temp;
-	tcp = (tcp_header*)((u_char *)pkt_data + 14 + iplen);/* 获得TCP协议内容 */
+	ip_header *ip_hdr = (ip_header *)(pkt_data + 14);
+	u_short ip_hdrLen = (ip_hdr->ver_ihl & 0xf) * 4;
+	tcp = (tcp_header*)((u_char *)pkt_data + 14 + ip_hdrLen);/* 获得TCP协议内容 */
 	source_port = ntohs(tcp->tcp_source_port);/* 获得源端口 */
 	destination_port = ntohs(tcp->tcp_destination_port);/* 获得目的端口 */
 	header_length = tcp->tcp_offset * 4;/* 长度 */
@@ -937,14 +954,17 @@ CString CMysnifferDlg::_tcp()
 
 CString CMysnifferDlg::_udp()
 {
-	udp_header *udp;
+	//udp_header *udp;
 	CString r, temp;
 	u_short sport;
 	u_short dport;
 	u_short len;
 	u_short crc;
 	//ip = (ip_header *)((u_char *)pkt_data + 14);
-	udp = (udp_header *)((u_char *)pkt_data + 14 + iplen);
+	ip_header *ip_hdr = (ip_header *)(pkt_data + 14);
+	u_short ip_hdrLen = (ip_hdr->ver_ihl & 0xf) * 4;
+	udp_header *udp = (udp_header *)(pkt_data + 14 + ip_hdrLen);
+	//udp = (udp_header *)((u_char *)pkt_data + 14 + iplen);
 
 	sport = ntohs(udp->sport);
 	dport = ntohs(udp->dport);
@@ -965,19 +985,22 @@ CString CMysnifferDlg::_udp()
 
 CString CMysnifferDlg::_icmp()
 {
-	struct icmp_header* icmp;
+	ip_header *ip_hdr = (ip_header *)(pkt_data + 14);
+	u_short ip_hdrLen = (ip_hdr->ver_ihl & 0xf) * 4;
+	icmp_header *icmp = (icmp_header *)(pkt_data + 14 + ip_hdrLen);
+	//struct icmp_header* icmp;
 	/* ICMP协议变量 */
-	icmp = (struct icmp_header*)((u_char *)pkt_data + 14 + iplen);
+	//icmp = (struct icmp_header*)((u_char *)pkt_data + 14 + iplen);
 	/* 获得ICMP协议内容 */
 	CString r, temp;
 	r += "----------- ICMP协议 -----------\r\n";
 	temp.Format("%d", icmp->icmp_type);
-	r += "ICMP类型:" + temp + "\r\n";
+	r += "ICMP类型:" + temp + "--";
 	/* 获得ICMP类型 */
 	switch (icmp->icmp_type)
 	{
 	case 8:
-		r += "  ICMP回显请求协议\r\n";
+		r += "ICMP回显请求协议\r\n";
 		temp.Format("%u", icmp->icmp_code);
 		r += "ICMP代码:" + temp + "\r\n";
 		temp.Format("%u", icmp->icmp_id);
@@ -986,7 +1009,7 @@ CString CMysnifferDlg::_icmp()
 		r += "序列码:" + temp + "\r\n";
 		break;
 	case 0:
-		r += "  ICMP回显应答协议\r\n";
+		r += "ICMP回显应答协议\r\n";
 		temp.Format("%u", icmp->icmp_code);
 		r += "ICMP代码:" + temp + "\r\n";
 		temp.Format("%u", icmp->icmp_id);
@@ -1003,70 +1026,6 @@ CString CMysnifferDlg::_icmp()
 	return r;
 }
 
-void CMysnifferDlg::getoffset(FILE *fp)
-{
-	if (fp == NULL) {
-		printf("getoffset error\n%s\n", strerror(ferror(fp)));
-		return;
-	}
-	long len = sizeof(pcap_file_header);
-	fseek(fp, len, SEEK_SET);
-
-	pcap_pkthdr pkt;
-	u_int pkt_len = 0;
-	int cot = 1;
-	while (!feof(fp) && cot <= MAXSIZE)
-	{
-		memset(&pkt, 0, sizeof(pcap_pkthdr));
-		if (fread(&pkt, sizeof(pcap_pkthdr), 1, fp) == -1)
-		{
-			printf("get header error\n");
-			break;
-		}
-		pkgoffset[cot] = ftell(fp);
-		pkt_len = pkt.caplen;
-		if (fseek(fp, (long)pkt_len, SEEK_CUR))
-		{
-			printf("\n%s\n", strerror(ferror(fp)));
-			return;
-		}
-		cot++;
-		printf("%d : %d  %d\n", cot - 1, pkgoffset[cot - 1], sizeof(pcap_pkthdr));
-	}
-
-	pkgoffset[0] = cot - 1;
-}
-
-int CMysnifferDlg::getpkg(FILE * fp, int id, pcap_pkthdr * header, const u_char * data)
-{
-	if (id <= 0) {
-		printf("the id is error");
-		return -1;
-	}
-	else if (id > pkgoffset[0]) {
-		printf("the id is out of range\n");
-		return -1;
-	}
-	if (pkgoffset[id] - sizeof(pcap_pkthdr) < 0)
-	{
-		printf("get pkg error\n");
-		return -1;
-	}
-	fseek(fp, pkgoffset[id] - sizeof(pcap_pkthdr), SEEK_SET);
-
-	if (fread((void *)header, sizeof(pcap_pkthdr), 1, fp) != 1)
-	{
-		printf("fread error1\n");
-		return -1;
-	}
-	if (fread((void *)data, sizeof(char), header->caplen, fp) != header->caplen)
-	{
-		printf("fread error2: %d\n ", header->caplen);
-		return -1;
-	}
-	fseek(fp, 0 - (header)->caplen, SEEK_CUR);
-	return 1;
-}
 
 void CMysnifferDlg::OnStnClickedStaticSip()
 {
