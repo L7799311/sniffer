@@ -151,10 +151,10 @@ public:
 	afx_msg void OnClickedButtonStart();
 	afx_msg void OnStnClickedStaticSip();
 	//afx_msg void OnClickedButtonSend();
-	afx_msg void OnNMCustomdrawList1(NMHDR *pNMHDR, LRESULT *pResult);
+	//afx_msg void OnNMCustomdrawList1(NMHDR *pNMHDR, LRESULT *pResult);
 	void getAllDevs();
 	void startCap();
-	CPtrList m_localDataList;				//保存被本地化后的数据包
+	//CPtrList m_localDataList;				//保存被本地化后的数据包
 	// 显示HTTP协议的详细信息
 	//void GetHTTPDetail(HTREEITEM & hItem, const u_char *pkt_data);
 	// 判断该协议是否为HTTP协议
@@ -175,7 +175,7 @@ public:
 	pcap_t *adhandle;
 	//const datapkt *data = (struct datapkt*)malloc(sizeof(struct datapkt));
 	const u_char *pkt_data;
-	const u_char  *pktType[8];
+	//const u_char  *pktType[8];
 	pcap_pkthdr *header;
 	pcap_dumper_t *dumpfp;
 
