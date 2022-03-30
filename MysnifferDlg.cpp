@@ -85,6 +85,7 @@ BEGIN_MESSAGE_MAP(CMysnifferDlg, CDialogEx)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LIST_DEVICE, &CMysnifferDlg::OnLvnItemchangedListDevice)
 	ON_BN_CLICKED(IDC_BUTTON_GET_DEVICE, &CMysnifferDlg::OnClickedButtonGetDevice)
 	ON_NOTIFY(NM_CLICK, IDC_LIST_PACK, &CMysnifferDlg::OnClickListPack)
+	//ON_NOTIFY(NM_CUSTOMDRAW, IDC_LIST_PACK, &CMysnifferDlg::OnNMCustomdrawList1)
 	ON_BN_CLICKED(IDC_BUTTON_START, &CMysnifferDlg::OnClickedButtonStart)
 	ON_EN_CHANGE(IDC_EDIT_DATA_INFOACTION, &CMysnifferDlg::OnEnChangeEditDataInfoaction)
 	ON_BN_CLICKED(IDC_BUTTON_STOP, &CMysnifferDlg::OnClickedButtonStop)
@@ -297,6 +298,48 @@ void CMysnifferDlg::OnClickedButtonStart()
 
 }
 
+
+//
+//void CMysnifferDlg::OnNMCustomdrawList1(NMHDR *pNMHDR, LRESULT *pResult)
+//{
+//	//LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
+//	LPNMLVCUSTOMDRAW pNMCD = (LPNMLVCUSTOMDRAW)pNMHDR;
+//	*pResult = 0;
+//	// TODO: 在此添加控件通知处理程序代码
+//	if (CDDS_PREPAINT == pNMCD->nmcd.dwDrawStage)
+//	{
+//		*pResult = CDRF_NOTIFYITEMDRAW;
+//	}
+//	else if (CDDS_ITEMPREPAINT == pNMCD->nmcd.dwDrawStage) {
+//		COLORREF crText;
+//		char buf[10];
+//		memset(buf, 0, 10);
+//		m_localDataList.AddTail(m_pack);
+//		POSITION pos = this->m_localDataList.FindIndex(pNMCD->nmcd.dwItemSpec);
+//		struct datapkt * local_data = (struct datapkt *)this->m_localDataList.GetAt(pos);
+//		m_pack.GetItemText
+//		strcpy(buf, local_data->pktType);
+//
+//		if (strcmp(buf, "IPV6") == 0)
+//			crText = RGB(111, 224, 254);
+//		else if (strcmp(buf, "UDP") == 0)
+//			crText = RGB(194, 195, 252);
+//		else if (strcmp(buf, "TCP") == 0)
+//			crText = RGB(230, 230, 230);
+//		else if (strcmp(buf, "ARP") == 0)
+//			crText = RGB(226, 238, 227);
+//		else if (strcmp(buf, "ICMP") == 0)
+//			crText = RGB(49, 164, 238);
+//		else if (strcmp(buf, "HTTP") == 0)
+//			crText = RGB(238, 232, 180);
+//		else if (strcmp(buf, "ICMPv6") == 0)
+//			crText = RGB(189, 254, 76);
+//
+//		pNMCD->clrTextBk = crText;
+//		*pResult = CDRF_DODEFAULT;
+//	}
+//}
+
 void CMysnifferDlg::getAllDevs()
 {
 	pcap_if_t *d;
@@ -346,6 +389,9 @@ static UINT WINAPI ThreadFunc()
 		if(STATE == FALSE){
 			return 0;
 		}
+		//ddata = (struct datapkt*)malloc(sizeof(struct datapkt));
+		//dlg->m_localDataList.AddTail(ddata);
+
 		pcap_t *adhandle = dlg->adhandle;
 		pcap_pkthdr *header = dlg->header;
 		const u_char *pkt_data = dlg->pkt_data;
@@ -499,6 +545,7 @@ void CMysnifferDlg::startCap()
 
 void CMysnifferDlg::an_ethernet()
 {
+	
 	u_short ethernet_type;
 	ether_header *ethernet;
 	u_char *macaddr;

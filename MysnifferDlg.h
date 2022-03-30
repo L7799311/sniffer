@@ -92,6 +92,28 @@ typedef struct TCP_Header
 	u_int16_t tcp_checksum;/* 校验和 */
 	u_int16_t tcp_urgent_pointer;/* 紧急指针 */
 }tcp_header;
+
+//要保存的数据结构
+typedef struct datapkt
+{
+	char  pktType[8];					//包类型
+	int time[6];								//时间
+	int len;									//长度
+
+	struct ethhdr* ethh;				//链路层包头
+
+	struct arphdr* arph;				//ARP包头
+	struct iphdr* iph;					//IP包头
+	struct iphdr6* iph6;				//IPV6
+
+	struct icmphdr* icmph;		//ICMP包头
+	struct icmphdr6* icmph6;	//ICMPv6包头
+	struct udphdr* udph;			//UDP包头
+	struct tcphdr* tcph;				//TCP包头
+
+	void *apph;							//应用层包头
+};
+
 // CMysnifferDlg 对话框
 class CMysnifferDlg : public CDialogEx
 {
@@ -129,10 +151,10 @@ public:
 	afx_msg void OnClickedButtonStart();
 	afx_msg void OnStnClickedStaticSip();
 	//afx_msg void OnClickedButtonSend();
-
+	afx_msg void OnNMCustomdrawList1(NMHDR *pNMHDR, LRESULT *pResult);
 	void getAllDevs();
 	void startCap();
-
+	CPtrList m_localDataList;				//保存被本地化后的数据包
 	// 显示HTTP协议的详细信息
 	//void GetHTTPDetail(HTREEITEM & hItem, const u_char *pkt_data);
 	// 判断该协议是否为HTTP协议
@@ -151,7 +173,9 @@ public:
 
 
 	pcap_t *adhandle;
+	//const datapkt *data = (struct datapkt*)malloc(sizeof(struct datapkt));
 	const u_char *pkt_data;
+	const u_char  *pktType[8];
 	pcap_pkthdr *header;
 	pcap_dumper_t *dumpfp;
 
